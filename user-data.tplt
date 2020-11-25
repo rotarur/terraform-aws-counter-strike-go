@@ -1,0 +1,38 @@
+#!/bin/bash -xe
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+sudo -- sh -c 'dpkg --add-architecture i386; add-apt-repository multiverse; apt-get update; apt-get -y dist-upgrade'
+
+echo steam steam/question select "I AGREE" | sudo debconf-set-selections
+echo steam steam/license note '' | sudo debconf-set-selections
+
+sudo apt install -y curl wget file tar bzip2 gzip unzip bsdmainutils \
+   python util-linux ca-certificates binutils bc jq tmux netcat \
+   lib32gcc1 lib32stdc++6 steamcmd
+
+sudo apt install -y libsdl2-2.0-0:i386
+
+sudo -i -u ubuntu -- sh -c "wget -O linuxgsm.sh https://linuxgsm.sh && chmod +x linuxgsm.sh && bash linuxgsm.sh csgoserver"
+
+sudo -i -u ubuntu ./csgoserver install << EOF
+Y
+Y
+${STEAM_TOKEN}
+Y
+EOF
+
+sudo -i -u ubuntu -- sh -c "./csgoserver start"
+
+# sudo apt install -y lib32stdc++6
+# sudo apt install -y steamcmd
+#
+# install -d /home/ubuntu/csgosv -o ubuntu -g ubuntu
+
+#sudo -i -u ubuntu /usr/games/steamcmd +login anonymous +force_install_dir /home/ubuntu/csgosv +app_update 740 validate +quit
+
+# sudo bash -c 'cat <<EOF >> /etc/crontab
+# @reboot /home/ubuntu/csgosv/srcds_linux -game csgo -console -usercon +game_type 0 +game_mode 0 +mapgroup mg_active +map de_dust2 +sv_setsteamaccount ${STEAM_TOKEN} -net_port_try 1 -nobots
+# EOF'
+
+# sudo reboot
