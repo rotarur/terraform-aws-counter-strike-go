@@ -13,26 +13,314 @@ sudo apt install -y curl wget file tar bzip2 gzip unzip bsdmainutils \
 
 sudo apt install -y libsdl2-2.0-0:i386
 
+cat << EOF >> /etc/sysctl.conf
+fs.file-max=5370890
+fs.aio-max-nr=1048576
+kernel.printk=4 4 1 7
+kernel.panic=10
+kernel.panic_on_oops=10
+net.core.netdev_max_backlog=30000
+net.core.rmem_max=16777216
+net.core.somaxconn=50000
+net.core.wmem_max=16777216
+net.ipv4.tcp_fin_timeout=4
+net.ipv4.tcp_keepalive_time=30
+net.ipv4.tcp_max_orphans=512000
+net.ipv4.tcp_max_syn_backlog=262144
+net.ipv4.tcp_mem=50576 64768 98152
+net.ipv4.tcp_no_metrics_save=1
+net.ipv4.tcp_orphan_retries=2
+net.ipv4.tcp_retries2=8
+net.ipv4.tcp_rmem=4096 87380 16777216
+net.ipv4.tcp_wmem=4096 65536 16777216
+net.ipv4.tcp_syn_retries=2
+net.ipv4.tcp_synack_retries=2
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_tw_reuse=1
+net.ipv4.tcp_max_syn_backlog=4096
+net.ipv4.tcp_syncookies=1
+net.ipv4.ip_local_port_range=1024 6553
+vm.dirty_ratio=10
+vm.swappiness=1
+vm.overcommit_memory=1
+EOF
+
+sysctl -p
+
 sudo -i -u ubuntu -- sh -c "wget -O linuxgsm.sh https://linuxgsm.sh && chmod +x linuxgsm.sh && bash linuxgsm.sh csgoserver"
 
 sudo -i -u ubuntu ./csgoserver install << EOF
 Y
 Y
 ${STEAM_TOKEN}
-Y
+n
 EOF
 
 sudo -i -u ubuntu -- sh -c "./csgoserver start"
 
-# sudo apt install -y lib32stdc++6
-# sudo apt install -y steamcmd
-#
-# install -d /home/ubuntu/csgosv -o ubuntu -g ubuntu
+sudo -i -u ubuntu cp /home/ubuntu/serverfiles/csgo/cfg/csgoserver.cfg{,.orig}
 
-#sudo -i -u ubuntu /usr/games/steamcmd +login anonymous +force_install_dir /home/ubuntu/csgosv +app_update 740 validate +quit
+cat <<EOF | sudo -i -u ubuntu tee /home/ubuntu/serverfiles/csgo/cfg/csgoserver.cfg
+hostname "${HOSTNAME}"
+rcon_password "${PASSWORD}" // Remote Console password
+sv_password "${PASSWORD}" // Private password
+sv_contact ""
+sv_lan 0 // No LAN
+sv_cheats 0 // No Cheats
+sv_tags "${TAGS}" // Custom tags
+sv_region 3 // Europe
 
-# sudo bash -c 'cat <<EOF >> /etc/crontab
-# @reboot /home/ubuntu/csgosv/srcds_linux -game csgo -console -usercon +game_type 0 +game_mode 0 +mapgroup mg_active +map de_dust2 +sv_setsteamaccount ${STEAM_TOKEN} -net_port_try 1 -nobots
-# EOF'
+log ${LOGGING}
 
-# sudo reboot
+// Log bans - Log server bans in the server logs.
+// Default: sv_logbans 1
+// Recommended: sv_logbans 1
+sv_logbans 0
+
+// Log echo - Display log information to the server console.
+// Default: sv_logecho 1
+// Recommended: sv_logecho 1
+sv_logecho 1
+
+// Log file - Log server information in the log file.
+// Default: sv_logfile 1
+// Recommended: sv_logfile 1
+sv_logfile 1
+
+// One file log - Log server information to only one file.
+// Default: sv_log_onefile 0
+// Recommended: sv_log_onefile 0
+sv_log_onefile 0
+
+// Server Hibernation
+sv_hibernate_when_empty 1
+sv_hibernate_ms 5
+
+// ............................. Server Query ............................. //
+// More info at: https://www.gametracker.com/games/csgo/forum.php?thread=91691
+host_name_store 1
+host_info_show 1
+host_players_show 2
+
+// ................................ Ban List ................................ //
+
+// User ban - Server banlist based on user steam ID.
+// Recommended: exec banned_user.cfg
+exec banned_user.cfg
+
+// IP ban - Server banlist based on user IP.
+// Recommended: exec banned_ip.cfg
+exec banned_ip.cfg
+
+// Write ID - Writes a list of permanently-banned user IDs to banned_user.cfg.
+writeid
+
+// Write IP - Save the ban list to banned_ip.cfg.
+writeip
+EOF
+
+sudo -i -u ubuntu cp /home/ubuntu/lgsm/config-default/config-lgsm/csgoserver/_default.cfg{,.orig}
+cat <<EOF | sudo -i -u ubuntu tee /home/ubuntu/lgsm/config-default/config-lgsm/csgoserver/_default.cfg
+#### Game Server Settings ####
+
+## Predefined Parameters | https://docs.linuxgsm.com/configuration/start-parameters
+# https://docs.linuxgsm.com/game-servers/counter-strike-global-offensive
+# [Game Modes]       gametype gamemode mapgroup (you can mix these across all Game Modes except Danger Zone, but use only one)
+# Arms Race          1        0        mg_armsrace
+# Classic Casual     0        0        mg_casualsigma, mg_casualdelta
+# Classic Competitive   0        1        mg_active, mg_reserves, mg_hostage, mg_de_dust2
+# Custom          3        0
+# Deathmatch         1        2        mg_deathmatch
+# Demolition         1        1        mg_demolition
+# Wingman            0        2
+# Danger Zone        6        0        mg_dz_blacksite (map: dz_blacksite), mg_dz_sirocco (map: dz_sirocco)
+gametype="${GAME_TYPE}"
+gamemode="${GAME_MODE}"
+mapgroup="mg_active"
+ip="0.0.0.0"
+port="27015"
+clientport="27005"
+sourcetvport="27020"
+defaultmap="${DEFAULT_MAP}"
+maxplayers="${MAX_PLAYERS}"
+tickrate="64"
+
+## Game Server Login Token (GSLT): Required
+# GSLT is required for running a public server.
+# More info: https://docs.linuxgsm.com/steamcmd/gslt
+gslt=""
+
+## Workshop Parameters | https://developer.valvesoftware.com/wiki/CSGO_Workshop_For_Server_Operators
+# To get an API key visit - https://steamcommunity.com/dev/apikey
+wsapikey=""
+wscollectionid=""
+wsstartmap=""
+
+## Server Parameters | https://docs.linuxgsm.com/configuration/start-parameters#additional-parameters
+fn_parms(){
+parms="-game csgo -usercon -strictportbind -ip \$${ip} -port \$${port} +clientport \$${clientport} +tv_port \$${sourcetvport} +sv_setsteamaccount \$${gslt} -tickrate \$${tickrate} +map \$${defaultmap} +servercfgfile \$${servercfg} -maxplayers_override \$${maxplayers} +mapgroup \$${mapgroup} +game_type \$${gametype} +game_mode \$${gamemode} +host_workshop_collection \$${wscollectionid} +workshop_start_map \$${wsstartmap} -authkey \$${wsapikey} -nobreakpad"
+}
+
+#### LinuxGSM Settings ####
+
+## LinuxGSM Stats
+# Send useful stats to LinuxGSM developers.
+# https://docs.linuxgsm.com/configuration/linuxgsm-stats
+# (on|off)
+stats="off"
+
+## Notification Alerts
+# (on|off)
+
+# Display IP | https://docs.linuxgsm.com/alerts#display-ip
+displayip=""
+
+# More info | https://docs.linuxgsm.com/alerts#more-info
+postalert="off"
+
+# Discord Alerts | https://docs.linuxgsm.com/alerts/discord
+discordalert="off"
+discordwebhook="webhook"
+
+# Email Alerts | https://docs.linuxgsm.com/alerts/email
+emailalert="off"
+email="email@example.com"
+emailfrom=""
+
+# IFTTT Alerts | https://docs.linuxgsm.com/alerts/ifttt
+iftttalert="off"
+ifttttoken="accesstoken"
+iftttevent="linuxgsm_alert"
+
+# Mailgun Email Alerts | https://docs.linuxgsm.com/alerts/mailgun
+mailgunalert="off"
+mailgunapiregion="us"
+mailguntoken="accesstoken"
+mailgundomain="example.com"
+mailgunemailfrom="alert@example.com"
+mailgunemail="email@myemail.com"
+
+# Pushbullet Alerts | https://docs.linuxgsm.com/alerts/pushbullet
+pushbulletalert="off"
+pushbullettoken="accesstoken"
+channeltag=""
+
+# Pushover Alerts | https://docs.linuxgsm.com/alerts/pushover
+pushoveralert="off"
+pushovertoken="accesstoken"
+pushoveruserkey="userkey"
+
+# Rocket.Chat Alerts | https://docs.linuxgsm.com/alerts/rocket.chat
+rocketchatalert="off"
+rocketchatwebhook="webhook"
+rocketchattoken=""
+
+# Slack Alerts | https://docs.linuxgsm.com/alerts/slack
+slackalert="off"
+slackwebhook="webhook"
+
+# Telegram Alerts | https://docs.linuxgsm.com/alerts/telegram
+# You can add a custom cURL string eg proxy (useful in Russia) in "curlcustomstring".
+# For example "--socks5 ipaddr:port" for socks5 proxy see more in "curl --help".
+telegramalert="off"
+telegramtoken="accesstoken"
+telegramchatid=""
+curlcustomstring=""
+
+## Updating | https://docs.linuxgsm.com/commands/update
+updateonstart="off"
+
+## Backup | https://docs.linuxgsm.com/commands/backup
+maxbackups="4"
+maxbackupdays="10"
+stoponbackup="on"
+
+## Logging | https://docs.linuxgsm.com/features/logging
+consolelogging="off"
+logdays="7"
+
+## Monitor | https://docs.linuxgsm.com/commands/monitor
+# Query delay time
+querydelay="1"
+
+## ANSI Colors | https://docs.linuxgsm.com/features/ansi-colors
+ansi="on"
+
+#### Advanced Settings ####
+
+## Message Display Time | https://docs.linuxgsm.com/features/message-display-time
+sleeptime="0.5"
+
+## SteamCMD Settings | https://docs.linuxgsm.com/steamcmd
+# Server appid
+appid="740"
+# SteamCMD Branch | https://docs.linuxgsm.com/steamcmd/branch
+branch=""
+betapassword=""
+# Master Server | https://docs.linuxgsm.com/steamcmd/steam-master-server
+steammaster="true"
+
+## Stop Mode | https://docs.linuxgsm.com/features/stop-mode
+# 1: tmux kill
+# 2: CTRL+c
+# 3: quit
+# 4: quit 120s
+# 5: stop
+# 6: q
+# 7: exit
+# 8: 7 Days to Die
+# 9: GoldSrc
+# 10: Avorion
+# 11: end
+stopmode="3"
+
+## Query mode
+# 1: session only
+# 2: gamedig (gsquery fallback)
+# 3: gamedig
+# 4: gsquery
+# 5: tcp
+querymode="2"
+querytype="protocol-valve"
+
+## Console type
+consoleverbose="yes"
+consoleinteract="yes"
+
+## Game Server Details
+# Do not edit
+gamename="Counter-Strike: Global Offensive"
+engine="source"
+glibc="2.15"
+
+#### Directories ####
+# Edit with care
+
+## Game Server Directories
+systemdir="\$${serverfiles}/csgo"
+executabledir="\$${serverfiles}"
+executable="./srcds_run"
+servercfgdir="\$${systemdir}/cfg"
+servercfg="\$${selfname}.cfg"
+servercfgdefault="server.cfg"
+servercfgfullpath="\$${servercfgdir}/\$${servercfg}"
+
+## Backup Directory
+backupdir="\$${lgsmdir}/backup"
+
+## Logging Directories
+logdir="\$${rootdir}/log"
+gamelogdir="\$${systemdir}/logs"
+lgsmlogdir="\$${logdir}/script"
+consolelogdir="\$${logdir}/console"
+lgsmlog="\$${lgsmlogdir}/\$${selfname}-script.log"
+consolelog="\$${consolelogdir}/\$${selfname}-console.log"
+alertlog="\$${lgsmlogdir}/\$${selfname}-alert.log"
+postdetailslog="\$${lgsmlogdir}/\$${selfname}-postdetails.log"
+
+## Logs Naming
+lgsmlogdate="\$${lgsmlogdir}/\$${selfname}-script-$(date '+%Y-%m-%d-%H:%M:%S').log"
+consolelogdate="\$${consolelogdir}/\$${selfname}-console-$(date '+%Y-%m-%d-%H:%M:%S').log"
+EOF
+
+sudo -i -u ubuntu -- sh -c "./csgoserver restart"

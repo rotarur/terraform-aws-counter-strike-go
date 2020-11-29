@@ -45,7 +45,25 @@ data template_file main {
 
   vars = {
     STEAM_TOKEN = var.token
+    HOSTNAME    = random_pet.main.id
+    PASSWORD    = random_password.password[0].result
+    TAGS        = var.tags
+    LOGGING     = var.logging
+    GAME_TYPE   = var.game_type
+    GAME_MODE   = var.game_mode
+    DEFAULT_MAP = var.default_map
+    MAX_PLAYERS = var.max_players
   }
+}
+
+# RANDOM RESOURCES
+
+resource random_pet main {}
+resource random_password password {
+  count            = var.password == "" ? 1 : var.password
+  length           = 6
+  special          = true
+  override_special = "_%@"
 }
 
 # SSH KEYS
@@ -59,6 +77,18 @@ resource aws_key_pair ssh_key {
   public_key      = tls_private_key.ssh_key.public_key_openssh
 }
 
+# LOCAL SSH KEYS
+resource local_file id_rsa_pub {
+  content         = tls_private_key.ssh_key.public_key_openssh
+  filename        = "${path.module}/id_rsa.pub"
+  file_permission = 400
+}
+
+resource local_file id_rsa {
+  content         = tls_private_key.ssh_key.private_key_pem
+  filename        = "${path.module}/id_rsa"
+  file_permission = 400
+}
 
 # OUTPUTS
 output public_ssh_key {
@@ -71,15 +101,12 @@ output instance_public_ip {
   value       = aws_instance.main.public_ip
 }
 
-# LOCAL SSH KEYS
-resource local_file id_rsa_pub {
-  content         = tls_private_key.ssh_key.public_key_openssh
-  filename        = "${path.module}/id_rsa.pub"
-  file_permission = 400
+output random_pet_name {
+  description = "Random Pet Name for hostnames"
+  value       = random_pet.main.id
 }
 
-resource local_file id_rsa {
-  content         = tls_private_key.ssh_key.private_key_pem
-  filename        = "${path.module}/id_rsa"
-  file_permission = 400
+output password {
+  description = "Password String"
+  value       = random_password.password[0].result
 }
