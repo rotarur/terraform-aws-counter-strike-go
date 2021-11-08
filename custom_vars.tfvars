@@ -15,3 +15,6 @@ map_group = "mg_active, mg_reserves, mg_hostage, mg_de_dust2"
 
 default_map = "de_mirage"
 max_players = "10"
+
+# AWS EBS
+ebs_disk_size = 40 # disk size in GB

@@ -9,6 +9,9 @@ variable region {
 variable security_group_name {
   description = "AWS Security Group name"
 }
+variable ebs_disk_size {
+  description = "Disk size of server holding disk"
+}
 
 variable instance_type {
   description = "AWS Instance Type"

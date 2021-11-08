@@ -7,7 +7,7 @@ sudo -- sh -c 'dpkg --add-architecture i386; add-apt-repository multiverse; apt-
 echo steam steam/question select "I AGREE" | sudo debconf-set-selections
 echo steam steam/license note '' | sudo debconf-set-selections
 
-sudo apt install -y curl wget file tar bzip2 gzip unzip bsdmainutils \
+sudo apt install -y curl wget file tar gdb bzip2 gzip unzip bsdmainutils \
    python util-linux ca-certificates binutils bc jq tmux netcat \
    lib32gcc1 lib32stdc++6 steamcmd
 

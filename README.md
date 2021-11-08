@@ -25,6 +25,8 @@ AWS_ACCESS_KEY_ID
 5. `terraform apply --var-file=custom_vars.tfvars`
    1. If you want to pass or change any other variable in `vars.tf` use `--var "KEY=VALUE"`. See [vars.tf](./vars.tf) for the `KEY`. This will overrwide the `KEY` in [custom_vars.tfvars](./custo_vars.tfvars) file.
 
+Server will start downloading CS:GO. It might take up to 30 minutes for you to be able to connect to the game server.
+
 ## How To SSH Into The Server?
 Terraform will create the `id_rsa` and `id_rsa.pub` ssh keys to be used to access the instance.
 
@@ -57,6 +59,7 @@ if you want to change the game type you can change them accordingly in [custom_v
 | token | Steam Token | - | yes |
 | region | AWS Region | `"eu-west-2"` | yes |
 | security_group_name | Security Group Name Prefix | `"main"` | yes |
+| ebs_disk_size | Size for attached AWS EBS disk | `"40"` | no |
 | instance_type | AWS Instance Type | `"m5.large"` | yes |
 | password | CSGO Server Password (RCON and Private) | - | no |
 | tags | CSGO Server Tags For Information | - | no |
