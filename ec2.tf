@@ -30,7 +30,7 @@ resource aws_instance main {
   user_data = data.template_file.main.rendered
 
   root_block_device {
-    volume_size = 30
+    volume_size = var.ebs_disk_size
   }
 
   security_groups = [
